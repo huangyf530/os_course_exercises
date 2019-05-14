@@ -9,29 +9,36 @@
 
 1. 请给出程序正确性的定义或解释。
 
- > 程序执行的结果是实现预期的功能，并且是确定的和可重现的；
+ + 程序执行的结果是实现预期的功能，并且是确定的和可重现的；
 
- > 我们只能在确定的限制条件下来讨论“正确性”的定义或解释，没有无条件的“正确”。
+ + 我们只能在确定的限制条件下来讨论“正确性”的定义或解释，没有无条件的“正确”。
 
 2. 在一个新运行环境中程序行为与原来的预期不一致，是错误吗？
 
- > 如果预期行为包括明确的运行环境的限定，这就不是错误；否则就是错误；
+ + 不一定，如果结果本来就与运行的环境有关就没有问题，如果是一个确定的过程，就是错误。
+ + 如果预期行为包括明确的运行环境的限定，这就不是错误；否则就是错误；
 
 3. 程序并发执行有什么好处和障碍？
 
- > 共享资源
+ + 共享资源
 
- > 加速处理
+ + 加速处理
 
- > 方便管理：模块化
+ + 方便管理：模块化
 
 4. 什么是原子操作？
 
- > 原子操作是指一次不存在任何中断或失败的操作，不会出现部分执行的状态。
+ + 原子操作是指一次不存在任何中断或失败的操作，不会出现部分执行的状态。相当于CPU的一条指令，不能在执行过程中被打断
 
 ### 17.2 现实生活中的同步问题
 
 1. 家庭采购中的同步问题的5种解决方案的核心思路是什么？举例描述可能的漏洞。
+
+  + 方案一：先检查，后加相同的标签；漏洞是可能买重复
+  + 方案二：先贴相同标签，再检查；漏洞是可能没有人去买
+  + 方案三：先贴不同的标签，再检查；漏洞是可能两个人都不去买
+  + 方案四：先加不同的标签，然后一个进行if检查另一个人的标签，另一个进行while检查另一个人的标签，再检查面包；没有漏洞
+  + 方案五：原子操作实现
 
  > 思路的关键点：有人去买，不会重复买；合理的枚举分类；
 
@@ -46,20 +53,27 @@
  > 方案五：原子操作
 
 2. 家庭采购中的同步问题与操作系统中进程同步有什么区别？
+  + 家庭采购中可能两个人会相互遇到，进而感知另一个人的动作
+  + 计算机中切换速度更快
 
  > 操作系统的进程切换比人的操作切换快；
 
  > 操作系统的进程对外界环境的感知手段比人少；
 
 3. 如何通过枚举和分类方法检查同步算法的正确性？
+  + 合理的考虑所有的进程切换情况，尤其注意在某些关键节点处的切换操作。
 
  > 合理定义枚举分类标准是检查同步算法正确性的关键；
 
 4. 尝试描述方案四的正确性。
-
+  + 如果第一个人先加标签，第二个人再加标签第一个人会在检查标签中不断循环，第二个人检查标签发现第一个人已经加了标签，便将自己的标签去除。之后第一个人检查面包，发现没有面包，去购买面包并放到冰箱中。
+  + 如果第二个人先加标签，并检查没有发现第一个人的标签，之后第一个人添加自己的标签，但在检查第二个人的标签过程中不断循环等待，之后第二个人检查面包发现没有面包，购买面包并放到冰箱中，撤出自己的标签，第一个人退出循环，检查是否有面包，发现有面包，进程结束。
  > 依据谁先加标签和加第二个标签的时间进行情况划分
 
 5. 举例说明，互斥、死锁和饥饿的定义是什么？
+  + 互斥：多个进程共享一段资源，在一个进程使用过程中，其他进程不能使用
+  + 死锁：不同的进程由于分别占用不同的资源，导致互相等待释放
+  + 饥饿：某个进程由于优先级低等原因无法得到资源，导致一直无法进行的现象。
 
  > 互斥：一个进程占用资源，其它进程不能使用；
 
@@ -70,54 +84,60 @@
 ### 17.3 临界区，禁用硬件中断,硬件原子操作同步方法
 
 1. 什么是临界区？
+  + 操作临界资源的代码片段
 
  > 操作临界资源的互斥执行代码片段
 
 2. 临界区的访问规则是什么？
-
+  + 空则进入、忙则等待、有限等待、让权等待
  > 空闲则入、忙则等待、有限等待、让权等待
 
 3. 禁用中断是如何实现对临界区的访问控制的？有什么优缺点？
-
+  + 通过禁用中断导致在执行临界区代码时无法被打断或切换，进而实现临界区代码的互斥访问
+  + 优点：实现简单
+  + 缺点：由于禁用中断可能导致中断系统崩溃，其他进程出现饥饿等
  > 禁用中断可以阻止其他进程对临界区访问进程的打断；
 
  > 优点是简单；缺点是无法中断，临界区代码故障可以导致系统崩溃，其他进程可能出现饥饿；
 
 4. Test&Set原子操作是否可以实现Exchange原子操作? Exchange原子操作是否可以实现Test&Set原子操作? 
-
+  + 这两条指令在原子操作的功能上是等价的。
+  + Test&Set实现Exchange：通过Test&Set进行判断，在临界区对两个变量进行交换。
+  + Exchange实现Test&Set：通过
  > 这两条指令在实现原子操作的功能是等价的。
 
 ### 17.4 基于软件的同步方法
 
 1. 软件同步方法中的5种解决方案（三种尝试方案、Peterson算法和Eisenberg算法）的核心思路是什么？举例描述可能的漏洞。
 
- > 方案一：turn 表示允许进入临界区的线程标识；
-方案漏洞：交替进入临界区；
+ + 方案一：turn 表示允许进入临界区的线程标识；
+	+ 方案漏洞：交替进入临界区；
 
- > 方案二：flag[i] 表示线程i是否在临界区；
-先判断，后修改变量；
-方案漏洞：并发判断后，可能出现同时进入临界区；
+ + 方案二：flag[i] 表示线程i是否在临界区；
+	+ 先判断，后修改变量；
+	+ 方案漏洞：并发判断后，可能出现同时进入临界区；
 
- > 方案二：flag[i] 表示线程i想要进入临界区；
-先修改变量，后判断；
-方案漏洞：并发修改变量后，可能出现都无法进入临界区的情况；
+ + 方案二：flag[i] 表示线程i想要进入临界区；
+	+ 先修改变量，后判断；
+	+ 方案漏洞：并发修改变量后，可能出现都无法进入临界区的情况；
 
- > Peterson算法：turn 表示进入临界区的线程标识，flag[i] 表示线程i想要进入临界区；
-先修改变量，后判断；后修改者等待；
-只适用于两个进程；
-方案正确性枚举判断：按写变量的顺序进行情况分类
+ + Peterson算法：turn 表示进入临界区的线程标识，flag[i] 表示线程i想要进入临界区；
+	+ 先设置flag，之后修改turn，然后判断；后修改turn的进程等待；
+	+ 只适用于两个进程；
+	+ 方案正确性枚举判断：按写变量的顺序进行情况分类
 
- > Eisenberg算法：flag[i] 表示线程i想要进入临界区，turn 表示进入临界区的线程标识（有多个想进入时）；
-进入区：先修改flag，后判断是否有多个想进入；后修改者等待；
-退出区：修改turn；
-适用于多个进程；
-方案正确性枚举判断：按写变量flag[i]的顺序和变量turn当前值进行情况分类
+ + Eisenberg算法：flag[i] 表示线程i想要进入临界区，turn 表示进入临界区的线程标识（有多个想进入时）；
+	+ 进入区：先修改flag，后判断是否有多个想进入；后修改者等待；
+	+ 退出区：修改turn；
+	+ 适用于多个进程；
+	+ 方案正确性枚举判断：按写变量flag[i]的顺序和变量turn当前值进行情况分类
 
 2. 尝试通过枚举和分类方法检查Peterson算法的正确性。
 
 3. 尝试准确描述Eisenberg同步算法，并通过枚举和分类方法检查其正确性。
+	描述：某个进程i想要进入临界区，首先判断从turn到i是否有其他想要进入的进程，如果有，则让其先执行。退出时，在i+1之后找到一个新的想要进入临界区的进程，设置turn为他的标志，如果没有turn回到当前进程i。
 
-4.下列二线程同步机制是否有误？请给出分析．
+4. 下列二线程同步机制是否有误？请给出分析．
 
 ```
 CONCEPT: A shared variable named turn is used to keep track of whose turn it is to enter the critical section.
@@ -134,9 +154,9 @@ EXIT PROTOCOL (for Process i ):
 	/* pass the turn on */
 	turn = j ;
 ```
+  + 不正确，不满足空闲则入
 
-
-5.下列二线程同步机制是否有误？请给出分析．
+5. 下列二线程同步机制是否有误？请给出分析．
 
 ```
 CONCEPT: A shared Boolean array named flags contains a flag for each process. The flag values are BUSY when the process is in its critical section (using the resource), or FREE when it is not.
@@ -162,8 +182,9 @@ EXIT PROTOCOL (for Process i ):
 	flags[i ] = FREE;
 
 ```
+  + 不正确，有可能两个都进入临界区
 
-6.下列二线程同步机制是否有误？请给出分析．
+6. 下列二线程同步机制是否有误？请给出分析．
 
 ```
 CONCEPT: Again we use a shared Boolean array as in Algorithm 2. Each process sets its flag before  testing the other flag, thus avoiding the problem of violating mutual exclusion.
@@ -188,8 +209,9 @@ EXIT PROTOCOL (for Process i ):
 	/* release the resource */
 	flags[i ] = FREE;
 ```
+  + 不正确，有可能出现死锁
 
-7.下列二线程同步机制是否有误？请给出分析．
+7. 下列二线程同步机制是否有误？请给出分析．
 
 ```
 CONCEPT: To avoid the deadlock problem of Algorithm 3, we periodically clear and reset our own flag while waiting for the other one.
@@ -218,8 +240,9 @@ EXIT PROTOCOL (for Process i ):
 	flags[i ] = FREE;
 
 ```
+  + 不正确，还是没有办法解决死锁的问题
 
-8.下列二线程同步机制是否有误？请给出分析．
+8. 下列二线程同步机制是否有误？请给出分析．
 
 ```
 CONCEPT: Both the turn variable and the status flags are combined in a way which we (the requesting process) set our flag and then check our neighbor's flag. 
@@ -261,8 +284,9 @@ EXIT PROTOCOL (for Process i ):
 	flags[i ] = FREE;
 
 ```
+  + 正确，Dekkers算法
 
-9.下列二线程同步机制是否有误？请给出分析． 
+9. 下列二线程同步机制是否有误？请给出分析． 
 
 ```
 CONCEPT: Both the turn variable and the status flags are used.
@@ -294,8 +318,9 @@ EXIT PROTOCOL (for Process i ):
 	flags[i ] = FREE;
 
 ```
+  + 正确，Perterson算法
 
-10.下列N线程同步机制是否有误？请给出分析． 
+10. 下列N线程同步机制是否有误？请给出分析． 
 
 ```
 CONCEPT: The turn variable and status flags are used as in Dekker's algorithm for the 2-process case. The flags now have three possible values: WAITING for a process in the entry protocol, waiting for the resource' ACTIVE for a process in the critical section, using the resource; and IDLE for other cases.
@@ -362,9 +387,10 @@ EXIT PROTOCOL (for Process i ):
 	flag[i] = IDLE;
 
 ```
+  + 正确
 
 
-11.下列N线程同步机制是否有误？请给出分析． 
+11. 下列N线程同步机制是否有误？请给出分析． 
 
 ```
 CONCEPT: Both status values and turn values are used. The status array is expanded to an integer value for each process, which is used to track that process' progress in scanning the status of other processes. The turn value is also expanded to an integer array. Its values represent the relative ordering for each pair of processes.
@@ -401,8 +427,9 @@ EXIT PROTOCOL (for Process i):
 /* tell everyone we are finished */
 flags[i] = -1;
 ```
+  + 正确，相当于每次最先扫描完的进程去执行临界区，后面的进程在循环中可以继续前进的条件是有某一个进程在追赶上他的进度以解决饥饿问题，但他不会超过之前排在最前面的进程。
 
-12.下列N线程同步机制是否有误？请给出分析． 
+12. 下列N线程同步机制是否有误？请给出分析． 
 
 ```
 CONCEPT: A process waiting to enter its critical section chooses a number. This number must be greater than all other numbers currently in use. There is a global shared array of current numbers for each process. The entering process checks all other processes sequentially, and waits for each one which has a lower number. Ties are possible; these are resolved using process IDs.
@@ -442,6 +469,7 @@ EXIT PROTOCOL (for Process i):
 	/* clear our number */
 	num[i] = 0;
 ```
+  + 正确，相当于通过choosing的过程对优先级进行选择，最先choosing的进程最先执行临界区，同时如果两个进程choosing的值一样，则进程序号小的先执行。
 
 13.(spoc)基于“python, ruby, C, C++，LISP、JavaScript”等语言模拟实现Eisenberg同步算法，并给出覆盖所有枚举分类的测试用例，在实现报告写出设计思路和测试结果分析。
 
@@ -449,19 +477,21 @@ EXIT PROTOCOL (for Process i):
 
 1. 如何证明TS指令和交换指令的等价性？
 
- > 利用一条指令来实现另一条指令的功能；
+ + 可以利用一条指令来实现另一条指令的功能：
+   + Test&Set实现Exchange：通过一个变量进行Test&Set，如果test为0，则进行Exchange，之后，设置该变量为0
+   + Exchange实现Test&Set：首先设置key为1（不共享），while(k == 1){ Exchange(lock, key)}这样当lock为1时，持续循环判断，lock为0之后跳出循环并设置lock为0。
 
 2. 自旋锁（spinlock）和无忙等待锁是如何实现同步的？它们有什么不同？
 
- > 自旋锁是基于TS指令实现同步的，进入区的等待是占用CPU的；
+ + 自旋锁是基于TS指令实现同步的，进入区的等待是占用CPU的；
 
- > 无忙等待锁是在自旋锁的基础上加一个等待队列和进程切换，进入区的等待是不占用CPU的；
+ + 无忙等待锁是在自旋锁的基础上加一个等待队列和进程切换，进入区的等待是不占用CPU的；
 
 3. 为什么硬件原子操作指令能简化同步算法的实现？
 
- > 原子操作指令是硬件实现的，与进程数目无关；
+ + 原子操作指令是硬件实现的，与进程数目无关；
 
- > 缺点是，等待时占用CPU，可能出现饥饿和死锁；
+ + 缺点是，等待时占用CPU，可能出现饥饿和死锁；
 
 ## 小组思考题
 
